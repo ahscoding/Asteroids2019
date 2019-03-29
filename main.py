@@ -29,12 +29,14 @@ Controls are **→** & **←** for turning, **↑** for acceleration and **space
 import pyxel
 
 from asteroid import Asteroid
+from asteroid import Planet
 from bullet import Bullet
 import collisions
 import constants
 from utils import center_text, get_highscore, save_highscore
 from ship import Ship, ShipBreakup
 import sound
+import random
 
 
 class Game:
@@ -42,6 +44,7 @@ class Game:
 
     def __init__(self):
         """Initialise pyxel and various classes and variables (one off)."""
+        
 
         pyxel.init(200, 200, scale=2)
         self.ship = Ship(*constants.SHIP_INITIAL_POSITION, constants.SHIP_COLOUR)
@@ -107,10 +110,14 @@ class Game:
 
     def check_collisions(self):
         """Check for collisions between the ship and asteroids, and the bullet and asteroids."""
-        if collisions.detect_ship_asteroid_collisions(self.ship, Asteroid):
-            self.death_event()
 
         collisions.detect_bullet_asteroid_collisions(Bullet, Asteroid)
+        
+        if collisions.detect_ship_asteroid_collisions(self.ship, Asteroid):
+            if collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).colour == 7:
+                self.death_event()
+            else:
+                Asteroid.asteroids.clear()
 
     def death_event(self):
         """Modify game state for when the ship hits and asteroid."""
@@ -128,7 +135,10 @@ class Game:
         
         Asteroids spawn on a reducing time scale (time decreases by a certain percentage each time."""
         if pyxel.frame_count >= self.next_spawn:
-            Asteroid()
+            if (random.randint(1, 3) == 3): 
+                Planet()
+            else:
+                Asteroid()
             self.next_spawn += self.spawn_speed
             self.spawn_speed *= constants.SPAWN_FREQUENCY_MOVEMENT
             sound.spawn()

@@ -32,6 +32,7 @@ class Asteroid:
         size=constants.ASTERPOD_INITIAL_SIZE,
         radius=constants.ASTEROID_RADIUS,
         position=None,
+        rock_type=1,
     ):
         """Initialise the asteroid, including the position, size, and points.
 
@@ -41,6 +42,7 @@ class Asteroid:
         self.colour = constants.ASTEROID_COLOUR
         self.size = size
         self.radius = radius
+        self.rock_type = rock_type
 
         self.init_position(position)
 
@@ -62,6 +64,8 @@ class Asteroid:
 
         Asteroid.asteroids.append(self)
 
+    
+    
     def init_position(self, position):
         """Create the position, either as defined, or random.
 
@@ -147,3 +151,61 @@ class Asteroid:
         """Convenience function to display all asteroids."""
         for asteroid in Asteroid.asteroids:
             asteroid.display()
+
+    def get_colour(self):
+        return self.colour
+
+    def get_size(self):
+        return self.size
+
+class Planet(Asteroid):
+    def __init__(
+        self,
+        size=constants.ASTERPOD_INITIAL_SIZE,
+        radius=constants.ASTEROID_RADIUS,
+        position=None,
+        rock_type=1,
+    ):
+        """Initialise the asteroid, including the position, size, and points.
+
+        By default, the asteroid is the largest size and randomly placed, but
+        this is overriden for smaller asteroids."""
+
+        self.colour = constants.PLANET_COLOUR
+        self.size = size
+        self.radius = radius
+        self.rock_type = rock_type
+
+        self.init_position(position)
+
+        self.direction = random.random() * math.pi * 2
+        self.velocity = rotate_around_origin(
+            (0, -constants.ASTEROID_VELOCITY), self.direction
+        )
+
+        self.spin_direction = random.choice((-1, 1))
+
+        asteroid_points = random.choice(constants.ASTEROID_SHAPES)
+        scale = radius / constants.ASTEROID_RADIUS
+
+        self.points = []
+        for x, y in asteroid_points:
+            point_new = Point(x * scale, y * scale)
+            point_new.rotate_point(self.direction)
+            self.points.append(point_new)
+
+        Asteroid.asteroids.append(self)
+    
+    @staticmethod
+    def initiate_game():
+        Asteroid.asteroids.clear()
+        Asteroid.asteroid_score = 0
+        for _ in range(constants.ASTEROID_INITIAL_QUANTITY):
+            Asteroid()
+
+    def destroy(self):
+        """Destroy planet. No points, no spawning."""
+        
+        Asteroid.asteroids.remove(self)
+        del self
+    
