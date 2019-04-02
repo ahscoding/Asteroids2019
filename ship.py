@@ -25,6 +25,7 @@ class Ship:
     """
 
     radius = constants.SHIP_RADIUS
+    lives = constants.STARTING_LIVES
 
     def __init__(self, x, y, colour):
         """Set up initial variables."""
@@ -155,7 +156,6 @@ class Ship:
             y2=y2 + self.y,
             col=constants.SHIP_ACCELERATION_COLOUR,
         )
-
 
 class ShipBreakup:
     """A class based on the ship on death which displays the various segements

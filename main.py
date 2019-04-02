@@ -27,6 +27,7 @@ Controls are **→** & **←** for turning, **↑** for acceleration and **space
 """
 
 import pyxel
+import time
 
 from asteroid import Asteroid
 from asteroid import Mineral
@@ -54,7 +55,6 @@ class Game:
 
         self.reset_game()
         self.high_score = get_highscore(constants.HIGH_SCORE_FILE)
-
         pyxel.run(self.update, self.draw)
 
     def reset_game(self):
@@ -64,6 +64,7 @@ class Game:
         self.death = False
         self.spawn_speed = constants.INITIAL_SPAWN_FREQUENCY
         self.next_spawn = pyxel.frame_count + self.spawn_speed
+        self.ship.lives = constants.STARTING_LIVES
 
     def update(self):
         """Update the game state, including the asteroids, ship and bullets."""
@@ -78,6 +79,7 @@ class Game:
             self.check_collisions()
         else:
             self.ship_breakup.update()
+            
 
     def check_input(self):
         """Check for input and modify the game state accordingly."""
@@ -117,25 +119,42 @@ class Game:
         if collisions.detect_ship_asteroid_collisions(self.ship, Asteroid):
             if collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).rock_type == "asteroid":
                 self.death_event()
-            if collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).rock_type == "mineral":
-                Mineral.harvest(collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision))
-            
-        if collisions.detect_ship_asteroid_collisions(self.ship, Planet):
-            if collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).rock_type == "planet":
+            elif collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).rock_type == "planet":
                 Planet.deliver()
-                self.ship.momentum_x = self.ship.momentum_x / 2
-                self.ship.momentum_y = self.ship.momentum_y / 2
+                self.ship.momentum_x = self.ship.momentum_x * 0.75
+                self.ship.momentum_y = self.ship.momentum_y * 0.75
+            else:
+                Mineral.harvest(collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision))
 
     def death_event(self):
-        """Modify game state for when the ship hits and asteroid."""
+        """Modify game state for when the ship hits an asteroid."""
+        self.ship.lives -= 1
+        sound.death()
+        if self.ship.lives < 0:
+            self.game_over()
+        else:
+            self.death_and_respawn()
+
+    def game_over(self):
+        """For when the ship is out of lives"""
         self.ship.destroy()
         self.ship_breakup = ShipBreakup(self.ship)
         self.death = True
-        sound.death()
-
         if Asteroid.mineral_score > self.high_score:
             self.high_score = Asteroid.mineral_score
             save_highscore(constants.HIGH_SCORE_FILE, self.high_score)
+
+    def death_and_respawn(self):
+        """For when the ship dies but has lives left"""
+        self.ship_breakup = ShipBreakup(self.ship)
+        self.ship.reset()
+        Asteroid.asteroids.clear()
+        Asteroid.minerals_stored = 0
+        self.spawn_speed = constants.INITIAL_SPAWN_FREQUENCY
+        self.next_spawn = pyxel.frame_count + self.spawn_speed
+        Planet()
+        for _ in range(constants.MINERAL_INITIAL_QUANTITY):
+            Mineral()
 
     def check_spawn_asteroid(self):
         """Keep track of the time and spawn new asteroids when appropriate.
@@ -175,10 +194,12 @@ class Game:
         high_score = "HS:{:04}".format(self.high_score)
         high_score_x = pyxel.width - 2 - (7 * pyxel.constants.FONT_WIDTH)
         stored = "{:04}".format(Asteroid.minerals_stored)
+        lives_display = "SHIPS:{:01}".format(self.ship.lives)
 
         pyxel.text(3, 3, score, constants.SCORE_COLOUR)
         pyxel.text(high_score_x, 3, high_score, constants.SCORE_COLOUR)
         pyxel.text(3, 10, stored, constants.STORED_COLOUR)
+        pyxel.text(high_score_x, 10, lives_display, constants.SCORE_COLOUR)
 
     def draw_death(self):
         """Draw the display text for the end of the game with the score."""

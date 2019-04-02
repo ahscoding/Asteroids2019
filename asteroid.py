@@ -139,7 +139,7 @@ class Asteroid:
         Asteroid.asteroids.clear()
         Asteroid.mineral_score = 0
         Asteroid.minerals_stored = 0
-        the_planet = Planet()
+        Planet()
         for _ in range(constants.MINERAL_INITIAL_QUANTITY):
             Mineral()
 
