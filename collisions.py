@@ -40,5 +40,6 @@ def detect_bullet_asteroid_collisions(bullet_class, asteroid_class):
         bullet = return_first_match(asteroid, bullet_class.bullets, detect_collision)
         if bullet:
             bullet.destroy()
-            asteroid.destroy()
-            sound.hit()
+            if asteroid.rock_type != "planet":
+                asteroid.destroy()
+                sound.hit()

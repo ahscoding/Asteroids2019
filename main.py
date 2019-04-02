@@ -29,6 +29,7 @@ Controls are **→** & **←** for turning, **↑** for acceleration and **space
 import pyxel
 
 from asteroid import Asteroid
+from asteroid import Mineral
 from asteroid import Planet
 from bullet import Bullet
 import collisions
@@ -114,10 +115,16 @@ class Game:
         collisions.detect_bullet_asteroid_collisions(Bullet, Asteroid)
         
         if collisions.detect_ship_asteroid_collisions(self.ship, Asteroid):
-            if collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).colour == 7:
+            if collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).rock_type == "asteroid":
                 self.death_event()
-            else:
-                Asteroid.asteroids.clear()
+            if collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).rock_type == "mineral":
+                Mineral.harvest(collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision))
+            
+        if collisions.detect_ship_asteroid_collisions(self.ship, Planet):
+            if collisions.return_first_match(self.ship, Asteroid.asteroids.copy(), collisions.detect_collision).rock_type == "planet":
+                Planet.deliver()
+                self.ship.momentum_x = self.ship.momentum_x / 2
+                self.ship.momentum_y = self.ship.momentum_y / 2
 
     def death_event(self):
         """Modify game state for when the ship hits and asteroid."""
@@ -126,8 +133,8 @@ class Game:
         self.death = True
         sound.death()
 
-        if Asteroid.asteroid_score > self.high_score:
-            self.high_score = Asteroid.asteroid_score
+        if Asteroid.mineral_score > self.high_score:
+            self.high_score = Asteroid.mineral_score
             save_highscore(constants.HIGH_SCORE_FILE, self.high_score)
 
     def check_spawn_asteroid(self):
@@ -135,13 +142,15 @@ class Game:
         
         Asteroids spawn on a reducing time scale (time decreases by a certain percentage each time."""
         if pyxel.frame_count >= self.next_spawn:
-            if (random.randint(1, 3) == 3): 
-                Planet()
-            else:
+            new_rock_type = random.randint(0, 99) 
+            if new_rock_type <= constants.INITIAL_MINERAL_RATE: 
+                Mineral()
+            else: 
                 Asteroid()
             self.next_spawn += self.spawn_speed
-            self.spawn_speed *= constants.SPAWN_FREQUENCY_MOVEMENT
             sound.spawn()
+            if self.spawn_speed > constants.MAX_SPAWN_SPEED:
+                self.spawn_speed *= constants.SPAWN_FREQUENCY_MOVEMENT
 
     def draw(self):
         """Master method for drawing the board. Mainly calls the display methods of the various classes."""
@@ -162,18 +171,20 @@ class Game:
     def draw_score(self):
         """Draw the score and the high score at the top."""
 
-        score = "{:04}".format(Asteroid.asteroid_score)
+        score = "{:04}".format(Asteroid.mineral_score)
         high_score = "HS:{:04}".format(self.high_score)
         high_score_x = pyxel.width - 2 - (7 * pyxel.constants.FONT_WIDTH)
+        stored = "{:04}".format(Asteroid.minerals_stored)
 
         pyxel.text(3, 3, score, constants.SCORE_COLOUR)
         pyxel.text(high_score_x, 3, high_score, constants.SCORE_COLOUR)
+        pyxel.text(3, 10, stored, constants.STORED_COLOUR)
 
     def draw_death(self):
         """Draw the display text for the end of the game with the score."""
         display_text = ["YOU DIED"]
-        display_text.append("Your score is {:04}".format(Asteroid.asteroid_score))
-        if Asteroid.asteroid_score == self.high_score:
+        display_text.append("Your score is {:04}".format(Asteroid.mineral_score))
+        if Asteroid.mineral_score == self.high_score:
             display_text.append("YOU HAVE A NEW HIGH SCORE!")
         else:
             display_text.append("The high score is {:04}".format(self.high_score))

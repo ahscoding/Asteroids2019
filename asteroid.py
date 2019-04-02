@@ -6,6 +6,7 @@ import random
 
 import pyxel
 
+import sound
 from utils import check_bounds, rotate_around_origin, Point
 import constants
 
@@ -25,14 +26,15 @@ class Asteroid:
     render all at once), and the asteroid score."""
 
     asteroids = []
-    asteroid_score = 0
+    mineral_score = 0
+    minerals_stored = 0
 
     def __init__(
         self,
         size=constants.ASTERPOD_INITIAL_SIZE,
         radius=constants.ASTEROID_RADIUS,
         position=None,
-        rock_type=1,
+        rock_type="asteroid",
     ):
         """Initialise the asteroid, including the position, size, and points.
 
@@ -54,7 +56,7 @@ class Asteroid:
         self.spin_direction = random.choice((-1, 1))
 
         asteroid_points = random.choice(constants.ASTEROID_SHAPES)
-        scale = radius / constants.ASTEROID_RADIUS
+        scale = radius / constants.PLANET_RADIUS
 
         self.points = []
         for x, y in asteroid_points:
@@ -117,7 +119,6 @@ class Asteroid:
             for _ in range(constants.ASTEROID_SPLITS):
                 Asteroid(self.size - 1, self.radius / 2, (self.x, self.y))
 
-        Asteroid.asteroid_score += 1
         Asteroid.asteroids.remove(self)
         del self
 
@@ -136,9 +137,11 @@ class Asteroid:
     def initiate_game():
         """Place the initial three asteroids and reset score."""
         Asteroid.asteroids.clear()
-        Asteroid.asteroid_score = 0
-        for _ in range(constants.ASTEROID_INITIAL_QUANTITY):
-            Asteroid()
+        Asteroid.mineral_score = 0
+        Asteroid.minerals_stored = 0
+        the_planet = Planet()
+        for _ in range(constants.MINERAL_INITIAL_QUANTITY):
+            Mineral()
 
     @staticmethod
     def update_all():
@@ -158,15 +161,59 @@ class Asteroid:
     def get_size(self):
         return self.size
 
+class Mineral(Asteroid):
+    def __init__(
+        self,
+        size=constants.MINERAL_INITIAL_SIZE,
+        radius=constants.MINERAL_RADIUS,
+        position=None,
+        rock_type="mineral",
+    ):
+        """Initialise the mineral, including the position, size, and points.
+
+        By default, the asteroid is the largest size and randomly placed, but
+        this is overriden for smaller asteroids."""
+
+        self.colour = constants.MINERAL_COLOUR
+        self.size = size
+        self.radius = radius
+        self.rock_type = rock_type
+
+        self.init_position(position)
+
+        self.direction = random.random() * math.pi * 2
+        self.velocity = rotate_around_origin(
+            (0, -constants.MINERAL_VELOCITY), self.direction
+        )
+
+        self.spin_direction = random.choice((-1, 1))
+
+        asteroid_points = random.choice(constants.ASTEROID_SHAPES)
+        scale = radius / constants.PLANET_RADIUS
+
+        self.points = []
+        for x, y in asteroid_points:
+            point_new = Point(x * scale, y * scale)
+            point_new.rotate_point(self.direction)
+            self.points.append(point_new)
+
+        Asteroid.asteroids.append(self)
+
+    def harvest(self):
+        """Add mineral to harvested minerals, then destroy."""
+        Asteroid.minerals_stored += 1
+        Asteroid.asteroids.remove(self)
+        del self
+
 class Planet(Asteroid):
     def __init__(
         self,
-        size=constants.ASTERPOD_INITIAL_SIZE,
-        radius=constants.ASTEROID_RADIUS,
-        position=None,
-        rock_type=1,
+        size=constants.PLANET_INITIAL_SIZE,
+        radius=constants.PLANET_RADIUS,
+        position=(100,100),
+        rock_type="planet",
     ):
-        """Initialise the asteroid, including the position, size, and points.
+        """Initialise the mineral, including the position, size, and points.
 
         By default, the asteroid is the largest size and randomly placed, but
         this is overriden for smaller asteroids."""
@@ -180,13 +227,13 @@ class Planet(Asteroid):
 
         self.direction = random.random() * math.pi * 2
         self.velocity = rotate_around_origin(
-            (0, -constants.ASTEROID_VELOCITY), self.direction
+            (0, -constants.PLANET_VELOCITY), self.direction
         )
 
         self.spin_direction = random.choice((-1, 1))
 
         asteroid_points = random.choice(constants.ASTEROID_SHAPES)
-        scale = radius / constants.ASTEROID_RADIUS
+        scale = radius / constants.PLANET_RADIUS
 
         self.points = []
         for x, y in asteroid_points:
@@ -195,17 +242,12 @@ class Planet(Asteroid):
             self.points.append(point_new)
 
         Asteroid.asteroids.append(self)
-    
-    @staticmethod
-    def initiate_game():
-        Asteroid.asteroids.clear()
-        Asteroid.asteroid_score = 0
-        for _ in range(constants.ASTEROID_INITIAL_QUANTITY):
-            Asteroid()
 
-    def destroy(self):
-        """Destroy planet. No points, no spawning."""
-        
-        Asteroid.asteroids.remove(self)
-        del self
+    def deliver():
+        """Add mineral to harvested minerals, then destroy."""
+        Asteroid.mineral_score += Asteroid.minerals_stored
+        Asteroid.minerals_stored = 0
+    
+
+
     
